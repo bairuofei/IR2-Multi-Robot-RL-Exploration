@@ -5,6 +5,14 @@
 We present IR2, a deep reinforcement learning approach to information sharing for multi-robot exporation under communication constraints. Leveraging attention-based neural networks and hierarchical graph formulation, robots can effectively balance the longer-term trade-offs between disconnecting for solo exploration and reconnecting for information sharing in large-scale, complex environments. 
 
 
+# IR2代码解读
+关于如何在探索的过程中，同时建立一个topology graph，主要实现在`graph_generator.py`文件中。
+
+1. 首先，将整个map的freespace进行均匀sampling，创建一个均匀网格覆盖整个环境。
+2. 根据实际的map情况，移除实际上不在freespace中的网格节点。
+3. 
+
+
 ## GIF Demo
 
 This demonstration showcases 4 robots exploring in an unknown `Complex` map under line-of-sight signal strength communication constraints. The top gif illustrates the global map and robot positions assuming no communication constraints. Conversely, the bottom 4 gifs illustrates the individual robots' map and position beliefs subjected to communication constraints. 
