@@ -24,6 +24,7 @@ class Graph_generator:
     def __init__(self, robot_id, map_size, k_size, sensor_range, file_path, plot=False):
         self.robot_id = robot_id
         self.k_size = k_size
+        # Graph类型，每个node维护一个dict，包含了由它出发的所有边的另一个节点，和到那个节点的距离
         self.graph = Graph()
         self.node_coords = None
         self.plot = plot
@@ -31,7 +32,7 @@ class Graph_generator:
         self.y = []
         self.map_x = map_size[1]
         self.map_y = map_size[0]
-        self.uniform_points = self.generate_uniform_points()
+        self.uniform_points = self.generate_uniform_points()  # 初始时在整个地图中均匀采样
         self.sensor_range = sensor_range
         self.route_node = []
         self.nodes_list = []
@@ -60,7 +61,9 @@ class Graph_generator:
 
 
     def generate_graph(self, robot_location, robot_belief, frontiers):
-        """ Initialize graphs of map belief """
+        """ Initialize graphs of map belief 
+        args: robot_belief, 实际上就是occupancy map
+        """
 
         self.edge_clear_all_nodes()
         free_area = self.free_area(robot_belief)
@@ -70,15 +73,16 @@ class Graph_generator:
         _, _, candidate_indices = np.intersect1d(free_area_to_check, uniform_points_to_check, return_indices=True)
         node_coords = self.uniform_points[candidate_indices]
         node_coords = np.concatenate((robot_location.reshape(1, 2), node_coords))
-        self.node_coords = node_coords
+        self.node_coords = node_coords  # 包括了所有的freespace中随机sample的点，以及机器人的位置
 
+        # 根据node_coords，把每个点与周围的点构建连接关系
         self.find_k_neighbor_all_nodes(robot_belief, update_dense=True)
 
         self.node_utility = []
         for coords in self.node_coords:
-            node = Node(coords, frontiers, robot_belief)
+            node = Node(coords, frontiers, robot_belief)  # 给定当前的frontier,统计从coords可以观察到的frontier的数量
             self.nodes_list.append(node)
-            utility = node.utility
+            utility = node.utility  # 可以观察到的frontier的数量
             self.node_utility.append(utility)
 
         self.node_utility = np.array(self.node_utility)
@@ -86,7 +90,7 @@ class Graph_generator:
         x = self.node_coords[:,0] + self.node_coords[:,1]*1j
         for node in self.route_node:
             index = self.find_closest_index_from_coords(self.node_coords, node)     
-            self.guidepost[index] += 1    # = 1
+            self.guidepost[index] += 1    # 根据当前的route node,在node_coords中寻找距离每个route node最近的点
 
         return self.node_coords, self.graph.edges, self.node_utility, self.guidepost
 
@@ -617,6 +621,7 @@ class Graph_generator:
 
             # Append global graph edges to each node first (to ensure connectivity)
             num_global_neighbours = 0
+            # 初始时，global_graph为None
             if global_graph is not None and tuple(p) in global_graph.edges:
                 global_graph_edges = global_graph.edges[tuple(p)].values()
                 global_graph_nodes = np.array([edge.to_node for edge in global_graph_edges])
@@ -641,11 +646,11 @@ class Graph_generator:
                 for j, neighbour in enumerate(self.node_coords[indices]):                
                     start = p
                     end = neighbour
-                    if not self.check_collision(start, end, robot_belief):
+                    if not self.check_collision(start, end, robot_belief):  # 检查两个点中间是否被遮挡
                         if update_dense:
                             self.graph.add_node(tuple(start))
                             self.graph.add_edge(tuple(start), tuple(end), np.linalg.norm(start-end))
-                        if self.plot:
+                        if self.plot:  # 添加节点以进行edge的显示
                             self.x.append([p[0], neighbour[0]])
                             self.y.append([p[1], neighbour[1]])
 
